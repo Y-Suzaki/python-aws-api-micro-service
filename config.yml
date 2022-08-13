@@ -1,7 +1,18 @@
 # Please use 2 indents so that the shell script can parse the config.yml.
 Env: dev
 
+App:
+  Version: 1.0.0
+  Environment:
+    LogLevel: DEBUG
+
+API:
+  Version: v1
+
 Domain:
   AppPrefix: api-drive
   ZoneId: Z0139905R5YAJRU3O2P6
   ZoneName: ys-dev-web.tk
+
+Deploy:
+  ArtifactBucket: cf-templates-461spye58s2i-ap-northeast-1

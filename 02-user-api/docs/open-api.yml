@@ -1,0 +1,128 @@
+openapi: 3.0.1
+info:
+  title: User API
+  description: It is an API for managing user information.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost
+tags:
+  - name: user
+    description: Abtou skill infomation.
+paths:
+  /users:
+    get:
+      tags:
+        - user
+      summary: Find user list.
+      description: Find user list.
+      parameters:
+        - name: limit
+          in: query
+          description: Acceptable item limit.
+          schema:
+            type: integer
+            example: 10
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/users'
+        503:
+          description: Internal server error.
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserLambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      tags:
+        - user
+      summary: Create user infomation.
+      description: Create user infomation.
+      requestBody:
+        description: User request body.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserLambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+  /users/{user_id}:
+    get:
+      tags:
+        - user
+      summary: Find user by skill id.
+      description: Find user by skill id.
+      parameters:
+        - name: user_id
+          in: path
+          description: user id.
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        404:
+          description: Skill not found
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserLambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+components:
+  schemas:
+    user:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: tanaka
+    users:
+      type: array
+      items:
+        $ref: '#/components/schemas/user'
