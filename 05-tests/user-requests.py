@@ -1,5 +1,6 @@
 import boto3
 import os
+import json
 from boto3.session import Session
 import requests
 from requests_aws4auth import AWS4Auth
@@ -13,6 +14,7 @@ CLIENT_ID = os.environ['CLIENT_ID']
 IDENTITY_POOL_ID = os.environ['IDENTITY_POOL_ID']
 TARGET_S3_BUCKET = "ys-dev-web-deploy-module"
 API_URL = os.environ['API_URL']
+KINESIS_FIREHOSE = os.environ['KINESIS_FIREHOSE']
 
 region = 'ap-northeast-1'
 
@@ -76,11 +78,40 @@ def access_api_gateway(credential, api_path):
     print(response.text)
 
 
+def put_kinesis_firehose(credential, firehose_name: str):
+    session = Session(
+        aws_access_key_id=credential['AccessKeyId'],
+        aws_secret_access_key=credential['SecretKey'],
+        aws_session_token=credential['SessionToken'],
+        region_name='ap-northeast-1')
+
+    data_list = [
+        {
+            "user_id": 1,
+            "user_name": "tanaka"
+        },
+        {
+            "user_id": 2,
+            "user_name": "y-suzaki"
+        }
+    ]
+
+    kinesis = session.client('firehose')
+    response = kinesis.put_record(
+        DeliveryStreamName=firehose_name,
+        Record={'Data': (json.dumps(data_list[0]) + "\n").encode()})
+    response = kinesis.put_record(
+        DeliveryStreamName=firehose_name,
+        Record={'Data': (json.dumps(data_list[1]) + "\n").encode()})
+
+
 _auth_result = auth(USER_ID, PASSWORD)
 _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"])
 # list_on_s3(_credential)
 
 access_api_gateway(_credential, 'user-service/users?limit=100')
 access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
+
+put_kinesis_firehose(_credential, KINESIS_FIREHOSE)
 
 print('Completed!')

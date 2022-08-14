@@ -10,6 +10,9 @@ App:
 API:
   Version: v1
 
+Datalake:
+  LocationDataBucket: ys-dev-web-datalake-analytics
+
 Domain:
   AppPrefix: api-drive
   ZoneId: Z0139905R5YAJRU3O2P6

@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create  Kinesis Data Firehose.
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  ServiceName:
+    Type: String
+    Default: kinesis-firehose
+  DatalakeLocationDataBucket:
+    Type: String
+
+Resources:
+  KinesisFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+  KinesisRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: firehose-s3-delivery-policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${DatalakeLocationDataBucket}/*
+      Roles:
+        - !Ref KinesisFirehoseRole
+
+  KinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub ys-dev-web-${ServiceName}-${Env}
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub arn:aws:s3:::${DatalakeLocationDataBucket}
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 1
+        CompressionFormat: UNCOMPRESSED
+        # カスタムPrefixでHive形式で保存するように設定
+        Prefix: 'firehose/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
+        ErrorOutputPrefix: 'error/!{firehose:error-output-type}/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/'
+        RoleARN: !GetAtt KinesisFirehoseRole.Arn
+
+  AuthenticatedPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ServiceName}-api-policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - firehose:PutRecord
+              - firehose:PutRecordBatch
+            Resource: !GetAtt KinesisFirehose.Arn
+      Roles:
+        - Fn::ImportValue:
+            !Sub ys-dev-web-authenticated-role-${Env}
