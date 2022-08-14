@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM Swagger.
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  ServiceName:
+    Type: String
+    Default: user-service
+  APIVersion:
+    Type: String
+  DeployArtifactBucket:
+    Type: String
+    Default: cf-templates-461spye58s2i-ap-northeast-1
+  AppEnvironmentLogLevel:
+    Type: String
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "lambda_cw_policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "logs:*"
+                Resource: "*"
+
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.9
+      Handler: lambda_handler.handler
+      CodeUri: lambda.zip
+      Role: !GetAtt LambdaRole.Arn
+
+  WebApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref APIVersion
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub s3://${DeployArtifactBucket}/${ServiceName}/open-api.yml
+      EndpointConfiguration:
+        Type: REGIONAL
+      OpenApiVersion: 3.0.1
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  UsereApiId:
+    Value: !Ref WebApi
+    Export:
+      Name: !Sub ys-dev-web-${ServiceName}-api-id-${Env}

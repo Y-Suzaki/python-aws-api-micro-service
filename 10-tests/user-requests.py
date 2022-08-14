@@ -67,6 +67,7 @@ def list_on_s3(credential):
 
 def access_api_gateway(credential, api_path):
     """ IAM認証されたAPIGatewayにアクセスする。 """
+    print(f'{api_path}')
     aws_auth = AWS4Auth(
         credential['AccessKeyId'],
         credential['SecretKey'],
@@ -76,6 +77,7 @@ def access_api_gateway(credential, api_path):
     )
     response = requests.get(f'{API_URL}/{api_path}', auth=aws_auth)
     print(response.text)
+    print()
 
 
 def put_kinesis_firehose(credential, firehose_name: str):
@@ -111,6 +113,7 @@ _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"]
 
 access_api_gateway(_credential, 'user-service/users?limit=100')
 access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
+access_api_gateway(_credential, 'setting-service/devices/12345/config')
 
 put_kinesis_firehose(_credential, KINESIS_FIREHOSE)
 
