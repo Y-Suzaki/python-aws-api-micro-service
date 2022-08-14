@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create  Base Path Mapping for APIGateway.
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  ServiceName:
+    Type: String
+    Default: location-service
+  APIVersion:
+    Type: String
+  DomainAppPrefix:
+    Type: String
+  DomainZoneName:
+    Type: String
+
+Resources:
+  UserApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      BasePath: !Ref ServiceName
+      DomainName: !Sub ${DomainAppPrefix}-${Env}.${DomainZoneName}
+      RestApiId:
+        Fn::ImportValue:
+          !Sub ys-dev-web-${ServiceName}-api-id-${Env}
+      Stage: !Ref APIVersion

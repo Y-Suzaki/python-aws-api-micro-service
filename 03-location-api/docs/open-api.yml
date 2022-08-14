@@ -1,0 +1,131 @@
+openapi: 3.0.1
+info:
+  title: Location API
+  description: It is an API for managing location information.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost
+tags:
+  - name: location
+    description: About location infomation.
+paths:
+  /devices/{device_id}/location/available_days:
+    get:
+      tags:
+        - location
+      summary: Find calendar by device id.
+      description: Find user by device id.
+      parameters:
+        - name: device_id
+          in: path
+          description: device id.
+          required: true
+          schema:
+            type: string
+            example: 123
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/calendar'
+        404:
+          description: Calendar not found
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserLambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+  /devices/{device_id}/location/route:
+    get:
+      tags:
+        - location
+      description: Find route by device id.
+      parameters:
+        - name: device_id
+          in: path
+          description: device id.
+          required: true
+          schema:
+            type: string
+            example: 123
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/route'
+        404:
+          description: Calendar not found
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserLambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+components:
+  schemas:
+    calendar:
+      required:
+        - start
+        - end
+        - available_days
+      type: object
+      properties:
+        start:
+          type: string
+          example: 2022-08-08T12:12:12Z
+        end:
+          type: string
+          example: 2022-08-0T10:12:12Z
+        available_days:
+          type: array
+          example: [1, 0, 1]
+          items:
+            type: integer
+    location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          example: 35.99
+        lng:
+          type: number
+          format: double
+          example: 139.11
+    route:
+      required:
+        - start
+        - end
+        - locations
+      type: object
+      properties:
+        start:
+          type: string
+          example: 2022-08-08T12:12:12Z
+        end:
+          type: string
+          example: 2022-08-0T10:12:12Z
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/location'
+

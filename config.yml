@@ -1,5 +1,6 @@
 # Please use 2 indents so that the shell script can parse the config.yml.
 Env: dev
+ServiceName: location-service
 
 App:
   Version: 1.0.0
