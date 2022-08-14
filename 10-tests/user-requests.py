@@ -13,7 +13,8 @@ PASSWORD = os.environ['PASSWORD']
 CLIENT_ID = os.environ['CLIENT_ID']
 IDENTITY_POOL_ID = os.environ['IDENTITY_POOL_ID']
 TARGET_S3_BUCKET = "ys-dev-web-deploy-module"
-API_URL = os.environ['API_URL']
+DRIVE_API_URL = os.environ['DRIVE_API_URL']
+SP_API_URL = os.environ['SP_API_URL']
 KINESIS_FIREHOSE = os.environ['KINESIS_FIREHOSE']
 
 region = 'ap-northeast-1'
@@ -67,7 +68,8 @@ def list_on_s3(credential):
 
 def access_api_gateway(credential, api_path):
     """ IAM認証されたAPIGatewayにアクセスする。 """
-    print(f'{api_path}')
+    access_url = f'{DRIVE_API_URL}/{api_path}'
+    print(f'{access_url}')
     aws_auth = AWS4Auth(
         credential['AccessKeyId'],
         credential['SecretKey'],
@@ -75,7 +77,15 @@ def access_api_gateway(credential, api_path):
         'execute-api',
         session_token=credential['SessionToken'],
     )
-    response = requests.get(f'{API_URL}/{api_path}', auth=aws_auth)
+    response = requests.get(access_url, auth=aws_auth)
+    print(response.text)
+    print()
+
+
+def access_api_gateway_no_auth(api_path):
+    access_url = f'{SP_API_URL}/{api_path}'
+    print(f'{access_url}')
+    response = requests.get(access_url)
     print(response.text)
     print()
 
@@ -114,6 +124,8 @@ _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"]
 access_api_gateway(_credential, 'user-service/users?limit=100')
 access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
 access_api_gateway(_credential, 'setting-service/devices/12345/config')
+
+access_api_gateway_no_auth('setting-service/devices/12345/config')
 
 put_kinesis_firehose(_credential, KINESIS_FIREHOSE)
 

@@ -1,0 +1,111 @@
+openapi: 3.0.1
+info:
+  title: Setting SP API
+  description: It is an API for managing setting information.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: https://api-sp-dev.ys-dev-web.tk
+tags:
+  - name: device_setting
+    description: About device setting infomation.
+paths:
+  /devices/{device_id}/config:
+    get:
+      tags:
+        - device_setting
+      summary: Find device setting.
+      description: Find device setting.
+      parameters:
+        - name: device_id
+          in: path
+          description: device id.
+          required: true
+          schema:
+            type: string
+            example: 123
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/config'
+        503:
+          description: Internal server error.
+          content: {}
+      # security:
+      #   - sigv4: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    put:
+      tags:
+        - device_setting
+      summary: Create device setting infomation.
+      description: Create device setting infomation.
+      parameters:
+        - name: device_id
+          in: path
+          description: device id.
+          required: true
+          schema:
+            type: string
+            example: 123
+      requestBody:
+        description: User request body.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/config'
+        required: true
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/config'
+      # security:
+      #   - sigv4: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+components:
+  schemas:
+    config:
+      required:
+        - volume
+        - storage_limit
+      type: object
+      properties:
+        volume:
+          type: integer
+          example: 100
+        storage_limit:
+          type: integer
+          example: 10
+
+  securitySchemes:
+    sigv4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
