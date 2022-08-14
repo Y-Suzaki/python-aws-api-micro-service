@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Custom Domain.
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  DomainAppPrefix:
+    Type: String
+  DomainZoneId:
+    Type: String
+  DomainZoneName:
+    Type: String
+
+Resources:
+  CustomDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub ${DomainAppPrefix}-${Env}.${DomainZoneName}
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      # TODO
+      RegionalCertificateArn: arn:aws:acm:ap-northeast-1:838023436798:certificate/177b240a-7cdf-43f3-91e3-0a4f13c6b79a
+
+  CustomDomainRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub ${DomainAppPrefix}-${Env}.${DomainZoneName}
+      Type: A
+      HostedZoneId: !Ref DomainZoneId
+      AliasTarget:
+        DNSName: !GetAtt CustomDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt CustomDomainName.RegionalHostedZoneId

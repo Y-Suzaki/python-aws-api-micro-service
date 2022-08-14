@@ -1,0 +1,22 @@
+# Please use 2 indents so that the shell script can parse the config-api-drive.yml.
+Env: dev
+ServiceName: location-service
+
+App:
+  Version: 1.0.0
+  Environment:
+    LogLevel: DEBUG
+
+API:
+  Version: v1
+
+Datalake:
+  LocationDataBucket: ys-dev-web-datalake-analytics
+
+Domain:
+  AppPrefix: api-drive
+  ZoneId: Z0139905R5YAJRU3O2P6
+  ZoneName: ys-dev-web.tk
+
+Deploy:
+  ArtifactBucket: cf-templates-461spye58s2i-ap-northeast-1
