@@ -39,6 +39,8 @@ paths:
         404:
           description: Calendar not found
           content: {}
+      security:
+        - sigv4: []
       x-amazon-apigateway-integration:
         responses:
           default:
@@ -71,6 +73,8 @@ paths:
         404:
           description: Calendar not found
           content: {}
+      security:
+        - sigv4: []
       x-amazon-apigateway-integration:
         responses:
           default:
@@ -129,3 +133,9 @@ components:
           items:
             $ref: '#/components/schemas/location'
 
+  securitySchemes:
+    sigv4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4

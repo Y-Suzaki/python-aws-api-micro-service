@@ -6,7 +6,8 @@ from usecase.user import UserUseCase
 @app.get('/users')
 def get_users():
     # query_strings = app.current_event.query_string_parameters
-    # headers = app.current_event.headers
+    headers = app.current_event.headers
+    print(headers)
     return UserUseCase.get_users()
 
 

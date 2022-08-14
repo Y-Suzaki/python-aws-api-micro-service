@@ -92,25 +92,25 @@ Resources:
               ForAnyValue:StringLike:
                 "cognito-identity.amazonaws.com:amr": authenticated
 
-  AuthenticatedPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: for-app-policy
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
+#  AuthenticatedPolicy:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: for-app-policy
+#      PolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
 #          - Effect: Allow
 #            Action:
 #              - "s3:*"
 #            Resource:
 #              - "arn:aws:s3:::ys-dev-web-deploy-module*"
-          - Effect: Allow
-            Action:
-              - "execute-api:Invoke"
-            Resource:
-              - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:w3gezxlnfa/*/*/*"
-      Roles:
-        - !Ref AuthenticatedRole
+#          - Effect: Allow
+#            Action:
+#              - "execute-api:Invoke"
+#            Resource:
+#              - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:w3gezxlnfa/*/*/*"
+#      Roles:
+#        - !Ref AuthenticatedRole
 
   RoleAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
@@ -130,3 +130,7 @@ Outputs:
     Value: !Ref IdentityPool
     Export:
       Name: !Sub ys-dev-web-id-pool-${Env}
+  AuthenticatedRole:
+    Value: !Ref AuthenticatedRole
+    Export:
+      Name: !Sub ys-dev-web-authenticated-role-${Env}

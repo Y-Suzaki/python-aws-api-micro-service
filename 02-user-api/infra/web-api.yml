@@ -6,6 +6,9 @@ Parameters:
   Env:
     Type: String
     Default: dev
+  ServiceName:
+    Type: String
+    Default: user-service
   APIVersion:
     Type: String
   DeployArtifactBucket:
@@ -33,7 +36,7 @@ Resources:
             Statement:
               -
                 Effect: "Allow"
-                Action: "cloudwatch:*"
+                Action: "logs:*"
                 Resource: "*"
 
   UserLambdaFunction:
@@ -44,7 +47,7 @@ Resources:
       CodeUri: lambda.zip
       Role: !GetAtt LambdaRole.Arn
 
-  UsereApi:
+  WebApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref APIVersion
@@ -66,6 +69,6 @@ Resources:
 
 Outputs:
   UsereApiId:
-    Value: !Ref UsereApi
+    Value: !Ref WebApi
     Export:
-      Name: !Sub ys-dev-web-user-api-id-${Env}
+      Name: !Sub ys-dev-web-${ServiceName}-api-id-${Env}
