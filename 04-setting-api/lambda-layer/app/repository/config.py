@@ -1,6 +1,6 @@
 class ConfigRepository:
     def __init__(self):
-        pass
+        self._dynamodb = None
 
     def read(self, device_id: str) -> dict:
         print(f'ConfigRepository:read')
