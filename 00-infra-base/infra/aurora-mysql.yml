@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Aurora MySQL.
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: RDS(Aurora MySQL) subnet group.
+      SubnetIds:
+        - Fn::ImportValue:
+            !Sub ys-dev-web-private-subnet-a-${Env}
+        - Fn::ImportValue:
+            !Sub ys-dev-web-private-subnet-c-${Env}
+
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: Parameter group for aurora mysql8.0
+      Family: aurora-mysql8.0
+      Parameters:
+        character_set_client: utf8mb4
+        character_set_connection: utf8mb4
+        character_set_database: utf8mb4
+        character_set_results: utf8mb4
+        character_set_server: utf8mb4
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-aurora-musql8.0-${Env}
+
+  RdsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          !Sub ys-dev-web-vpc-${Env}
+      GroupDescription: Allow Aurora MySQL (TCP3306)
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-aurora-mysql-${Env}
+#
+#  SecretAurora:
+#    Type: AWS::SecretsManager::Secret
+#    Properties:
+#      GenerateSecretString:
+#        SecretStringTemplate: '{"username": "admin"}'
+#        GenerateStringKey: 'password'
+#        PasswordLength: 16
+#        ExcludeCharacters: '"@/\'
+#
+#  RdsDbCluster:
+#    Type: AWS::RDS::DBCluster
+#    Properties:
+#      BackupRetentionPeriod: 7
+#      DBClusterIdentifier: !Sub ys-dev-web-rds-aurora-serverless-${Env}
+#      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+#      DBSubnetGroupName: !Ref DBSubnetGroup
+#      DeletionProtection: false
+#      Engine: aurora
+#      EngineMode: serverless
+#      # aws rds describe-db-engine-versions --engine aurora --query "DBEngineVersions[].EngineVersion"
+#      EngineVersion: 5.6.10a
+#      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretAurora, ':SecretString:username}}' ]]
+#      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretAurora, ':SecretString:password}}' ]]
+#      Port: 3306
+#      PreferredBackupWindow: 15:25-15:55
+#      PreferredMaintenanceWindow: Tue:16:05-Tue:16:35
+#      ScalingConfiguration:
+#        AutoPause: true
+#        MinCapacity: 1
+#        MaxCapacity: 1
+#        SecondsUntilAutoPause: 1800
+#      StorageEncrypted: true
+#      VpcSecurityGroupIds:
+#        - !Ref RdsSecurityGroup
+#
+#Outputs:
+#  RdsDbClusterEndpoint:
+#    Value: !GetAtt RdsDbCluster.Endpoint.Address

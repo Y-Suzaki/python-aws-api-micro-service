@@ -1,0 +1,212 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create VPC & Subnet.
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  EnableNatGatewayA:
+    Default: false
+    Type: String
+    AllowedValues:
+      - true
+      - false
+
+Conditions:
+  IsCreateNATGatewayA: !Equals [ !Ref EnableNatGatewayA, true ]
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-vpc-${Env}
+
+  # Subnet
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/22
+      AvailabilityZone: ap-northeast-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-public-subnet-a-${Env}
+  PublicSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/22
+      AvailabilityZone: ap-northeast-1c
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-public-subnet-c-${Env}
+  ApplicationSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.8.0/22
+      AvailabilityZone: ap-northeast-1a
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-application-subnet-a-${Env}
+  ApplicationSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.12.0/22
+      AvailabilityZone: ap-northeast-1c
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-application-subnet-c-${Env}
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.16.0/22
+      AvailabilityZone: ap-northeast-1a
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-private-subnet-a-${Env}
+  PrivateSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.20.0/22
+      AvailabilityZone: ap-northeast-1c
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-private-subnet-c-${Env}
+
+  # NAT Gateway
+  NATGatewayAEIP:
+    Type: AWS::EC2::EIP
+    Condition: IsCreateNATGatewayA
+    Properties:
+      Domain: vpc
+
+  NATGatewayA:
+    Type: AWS::EC2::NatGateway
+    Condition: IsCreateNATGatewayA
+    Properties:
+      AllocationId: !GetAtt NATGatewayAEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-natgateway-a-${Env}
+
+  # Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-public-route-${Env}
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-private-route-${Env}
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-internet-gateway-${Env}
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  InternetGatewayRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PrivateRouteNATGatewayA:
+    Type: AWS::EC2::Route
+    Condition: IsCreateNATGatewayA
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NATGatewayA
+
+  # SubnetRouteTableAssociation
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetC
+      RouteTableId: !Ref PublicRouteTable
+  ApplicationSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ApplicationSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+  ApplicationSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ApplicationSubnetC
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetC
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Security Group
+  # none
+
+Outputs:
+  VPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ys-dev-web-vpc-${Env}
+  VPCCIDR:
+    Value: !GetAtt VPC.CidrBlock
+    Export:
+      Name: !Sub ys-dev-web-vpc-cidr-${Env}
+  PublicSubnetA:
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub ys-dev-web-public-subnet-a-${Env}
+  PublicSubnetB:
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: !Sub ys-dev-web-public-subnet-c-${Env}
+  ApplicationSubnetA:
+    Value: !Ref ApplicationSubnetA
+    Export:
+      Name: !Sub ys-dev-web-application-subnet-a-${Env}
+  ApplicationSubnetC:
+    Value: !Ref ApplicationSubnetC
+    Export:
+      Name: !Sub ys-dev-web-application-subnet-c-${Env}
+  PrivateSubnetA:
+    Value: !Ref PrivateSubnetA
+    Export:
+      Name: !Sub ys-dev-web-private-subnet-a-${Env}
+  PrivateSubnetC:
+    Value: !Ref PrivateSubnetC
+    Export:
+      Name: !Sub ys-dev-web-private-subnet-c-${Env}

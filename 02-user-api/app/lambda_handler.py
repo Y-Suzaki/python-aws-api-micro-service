@@ -14,7 +14,9 @@ def get_users():
 @app.get('/users/<user_id>')
 def get(user_id: str):
     _id = int(user_id)
-    return UserUseCase.get(_id)
+    user = UserUseCase.get(_id)
+    print(f'{user=}')
+    return user
 
 
 @app.post('/users')

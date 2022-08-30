@@ -132,3 +132,5 @@ dmypy.json
 
 # secure test data
 local_lambda_event.py
+
+11-open-api/output/

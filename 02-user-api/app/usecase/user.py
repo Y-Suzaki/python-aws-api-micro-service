@@ -1,4 +1,5 @@
 from typing import Final
+from repository.user import UserRepository
 
 
 class UserUseCase:
@@ -17,10 +18,7 @@ class UserUseCase:
 
     @staticmethod
     def get(user_id: int) -> dict:
-        return {
-            'id': user_id,
-            'name': 'tanaka'
-        }
+        return UserRepository().get(user_id)
 
     @staticmethod
     def add_user(user: dict) -> dict:
