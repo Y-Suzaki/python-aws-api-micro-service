@@ -45,16 +45,18 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ys-dev-web-aurora-mysql-${Env}
-#
-#  SecretAurora:
-#    Type: AWS::SecretsManager::Secret
-#    Properties:
-#      GenerateSecretString:
-#        SecretStringTemplate: '{"username": "admin"}'
-#        GenerateStringKey: 'password'
-#        PasswordLength: 16
-#        ExcludeCharacters: '"@/\'
-#
+
+  SecretAurora:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Auora MySQL 8.0 Secret.
+      GenerateSecretString:
+        ExcludeCharacters: '"@/\'
+        GenerateStringKey: 'password'
+        SecretStringTemplate: '{"username": "admin"}'
+        PasswordLength: 16
+      Name: ys-dev-web-aurora-mysql-${Env}
+
 #  RdsDbCluster:
 #    Type: AWS::RDS::DBCluster
 #    Properties:
