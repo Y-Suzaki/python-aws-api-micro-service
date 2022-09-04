@@ -16,6 +16,15 @@ Parameters:
     Default: cf-templates-461spye58s2i-ap-northeast-1
   AppEnvironmentLogLevel:
     Type: String
+  AppEnvironmentRDSUser:
+    Type: String
+    Default: admin
+  AppEnvironmentRDSPassword:
+    Type: String
+#  AppEnvironmentRDSWriterEndpoint:
+#    Type: String
+#  AppEnvironmentRDSReaderEndpoint:
+#    Type: String
 
 Resources:
   LambdaRole:
@@ -38,6 +47,19 @@ Resources:
                 Effect: "Allow"
                 Action: "logs:*"
                 Resource: "*"
+        -
+          PolicyName: "lambda_vpc_policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DetachNetworkInterface"
+                  - "ec2:DeleteNetworkInterface"
+                Resource: "*"
 
   UserLambdaFunction:
     Type: AWS::Serverless::Function
@@ -46,6 +68,22 @@ Resources:
       Handler: lambda_handler.handler
       CodeUri: lambda.zip
       Role: !GetAtt LambdaRole.Arn
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !Sub "{{resolve:ssm:/ys-dev-web-${Env}/ApplicationSecurityGroup}}"
+        SubnetIds:
+          - Fn::ImportValue:
+              !Sub ys-dev-web-application-subnet-a-${Env}
+          - Fn::ImportValue:
+              !Sub ys-dev-web-application-subnet-c-${Env}
+      Environment:
+        Variables:
+          RDS_WRITER_ENDPOINT: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/RDSWriterEndpoint}}"
+          RDS_PROXY_WRITER_ENDPOINT: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/RDSProxyWriterEndpoint}}"
+          RDS_READER_ENDPOINT: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/RDSReaderEndpoint}}"
+          RDS_USER: !Ref AppEnvironmentRDSUser
+          RDS_PASSWORD: !Ref AppEnvironmentRDSPassword
 
   WebApi:
     Type: AWS::Serverless::Api

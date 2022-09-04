@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Aurora MySQL.
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  InstanceType:
+    Type: String
+    Default: t2.micro
+  ImageId:
+    Type: String
+    Default: ami-0f36dcfcc94112ea1
+
+Resources:
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Bastion Security Group.
+      VpcId:
+        Fn::ImportValue:
+          !Sub ys-dev-web-vpc-${Env}
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-bastion-security-${Env}
+
+  SSMBastionSecurityGroup: # 渡す値をParameter Storeに保存する
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/BastionSecurityGroup
+      Type: String
+      Value: !Ref BastionSecurityGroup
+
+  BastionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+
+  BastionInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref BastionRole
+
+  Bastion:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref ImageId
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+            DeleteOnTermination: true
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref BastionSecurityGroup
+          SubnetId:
+            Fn::ImportValue:
+              !Sub ys-dev-web-public-subnet-a-${Env}
+      UserData: !Base64 |
+        #!/bin/bash
+        yum update -y
+        amazon-linux-extras install epel -y
+        # git
+        yum install git -y
+        # MySQL
+        rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+        yum localinstall https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm -y
+        yum install mysql-community-client -y
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-bastion-${Env}
+
+Outputs:
+  BastionSecurityGroup:
+    Value: !Ref BastionSecurityGroup

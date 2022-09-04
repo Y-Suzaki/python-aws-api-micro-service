@@ -6,6 +6,7 @@ Parameters:
     Default: dev
 
 Resources:
+  # RDS Setting
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -31,6 +32,45 @@ Resources:
         - Key: Name
           Value: !Sub ys-dev-web-aurora-musql8.0-${Env}
 
+  # Security Group
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application Security Group.
+      VpcId:
+        Fn::ImportValue:
+          !Sub ys-dev-web-vpc-${Env}
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-application-${Env}
+
+  SSMApplicationSecurityGroup: # 渡す値をParameter Storeに保存する
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/ApplicationSecurityGroup
+      Type: String
+      Value: !Ref ApplicationSecurityGroup
+
+  RDSProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Proxy Security Group.
+      VpcId:
+        Fn::ImportValue:
+          !Sub ys-dev-web-vpc-${Env}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref ApplicationSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/BastionSecurityGroup}}"
+      Tags:
+        - Key: Name
+          Value: !Sub ys-dev-web-rds-security-${Env}
+
   RdsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -42,11 +82,21 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3306
           ToPort: 3306
+          SourceSecurityGroupId: !Ref RDSProxySecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref ApplicationSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/BastionSecurityGroup}}"
       Tags:
         - Key: Name
           Value: !Sub ys-dev-web-aurora-mysql-${Env}
 
-  SecretAurora:
+  # RDS Cluster
+  RDSMasterUserSecretArn:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Auora MySQL 8.0 Secret.
@@ -55,34 +105,133 @@ Resources:
         GenerateStringKey: 'password'
         SecretStringTemplate: '{"username": "admin"}'
         PasswordLength: 16
-      Name: ys-dev-web-aurora-mysql-${Env}
+      Name: !Sub /ys-dev-web/aurora-mysql-${Env}
 
-#  RdsDbCluster:
-#    Type: AWS::RDS::DBCluster
-#    Properties:
-#      BackupRetentionPeriod: 7
-#      DBClusterIdentifier: !Sub ys-dev-web-rds-aurora-serverless-${Env}
-#      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
-#      DBSubnetGroupName: !Ref DBSubnetGroup
-#      DeletionProtection: false
-#      Engine: aurora
-#      EngineMode: serverless
-#      # aws rds describe-db-engine-versions --engine aurora --query "DBEngineVersions[].EngineVersion"
-#      EngineVersion: 5.6.10a
-#      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretAurora, ':SecretString:username}}' ]]
-#      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretAurora, ':SecretString:password}}' ]]
-#      Port: 3306
-#      PreferredBackupWindow: 15:25-15:55
-#      PreferredMaintenanceWindow: Tue:16:05-Tue:16:35
-#      ScalingConfiguration:
-#        AutoPause: true
-#        MinCapacity: 1
-#        MaxCapacity: 1
-#        SecondsUntilAutoPause: 1800
-#      StorageEncrypted: true
-#      VpcSecurityGroupIds:
-#        - !Ref RdsSecurityGroup
-#
-#Outputs:
-#  RdsDbClusterEndpoint:
-#    Value: !GetAtt RdsDbCluster.Endpoint.Address
+  RDSDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      BackupRetentionPeriod: 1
+      DBClusterIdentifier: !Sub ys-dev-web-user-db-cluster-${Env}
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      DeletionProtection: false
+      Engine: aurora-mysql
+      EngineMode: provisioned
+      # aws rds describe-db-engine-versions --engine aurora --query "DBEngineVersions[].EngineVersion"
+      EngineVersion: 8.0.mysql_aurora.3.02.0
+      MasterUsername: !Sub '{{resolve:secretsmanager:${RDSMasterUserSecretArn}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${RDSMasterUserSecretArn}:SecretString:password}}'
+      Port: 3306
+      PreferredBackupWindow: 15:25-15:55
+      PreferredMaintenanceWindow: Tue:16:05-Tue:16:35
+      StorageEncrypted: true
+      VpcSecurityGroupIds:
+        - !Ref RdsSecurityGroup
+
+  DBClusterSecretTargetAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    DependsOn: RDSDBCluster
+    Properties:
+      SecretId: !Ref RDSMasterUserSecretArn
+      TargetId: !Ref RDSDBCluster
+      TargetType: AWS::RDS::DBCluster
+
+  DBInstanceFirst:
+    Type: AWS::RDS::DBInstance
+    DependsOn: RDSDBCluster
+    Properties:
+      DBClusterIdentifier: !Ref RDSDBCluster
+      DBInstanceIdentifier: !Sub ys-dev-web-user-db-instance-first-${Env}
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Engine: aurora-mysql
+      EngineVersion: 8.0.mysql_aurora.3.02.0
+      DBInstanceClass: db.t4g.medium
+
+  # RDS Proxy
+  RDSProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: rds.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "secret_manager_policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: kms:Decrypt
+                Resource: "*"
+
+  RDSProxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      Auth:
+        - AuthScheme: SECRETS
+          SecretArn: !Ref RDSMasterUserSecretArn
+          IAMAuth: DISABLED
+      DBProxyName: !Sub ys-dev-web-user-db-proxy-${Env}
+      EngineFamily: MYSQL
+      IdleClientTimeout: 120
+      RequireTLS: false
+      RoleArn: !GetAtt RDSProxyRole.Arn
+      VpcSecurityGroupIds:
+        - !Ref RDSProxySecurityGroup
+      VpcSubnetIds:
+        - Fn::ImportValue:
+            !Sub ys-dev-web-private-subnet-a-${Env}
+        - Fn::ImportValue:
+            !Sub ys-dev-web-private-subnet-c-${Env}
+
+  RDSProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      DBProxyName: !Ref RDSProxy
+      DBClusterIdentifiers:
+        - !Ref RDSDBCluster
+      TargetGroupName: default
+      ConnectionPoolConfigurationInfo:
+        MaxConnectionsPercent: 100
+        MaxIdleConnectionsPercent: 50
+        ConnectionBorrowTimeout: 120
+
+  # SSM Parameter Store
+  SSMRDSWriterEndpoint: # 渡す値をParameter Storeに保存する
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/RDSWriterEndpoint
+      Type: String
+      Value: !GetAtt RDSDBCluster.Endpoint.Address
+
+  SSMRDSReaderEndpoint: # 渡す値をParameter Storeに保存する
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/RDSReaderEndpoint
+      Type: String
+      Value: !GetAtt RDSDBCluster.ReadEndpoint.Address
+
+  SSMRDSProxyWriterEndpoint: # 渡す値をParameter Storeに保存する
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/RDSProxyWriterEndpoint
+      Type: String
+      Value: !GetAtt RDSProxy.Endpoint
+
+Outputs:
+  RDSWriterEndpoint:
+    Value: !GetAtt RDSDBCluster.Endpoint.Address
+  RDSReaderEndpoint:
+    Value: !GetAtt RDSDBCluster.ReadEndpoint.Address
+  RDSProxyWriterEndpoint:
+    Value: !GetAtt RDSProxy.Endpoint

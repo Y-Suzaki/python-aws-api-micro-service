@@ -1,13 +1,20 @@
+import os
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import relation
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+
 # 環境に合わせて変更すること
-DATABASE = 'mysql://%s:%s@%s/%s?charset=utf8' % (
-    "docker",
-    "docker",
-    "localhost",
+# host = os.environ.get('RDS_WRITER_ENDPOINT', 'localhost')
+host = os.environ.get('RDS_PROXY_WRITER_ENDPOINT', 'localhost')
+user = os.environ.get('RDS_USER', 'admin')
+password = os.environ.get('RDS_PASSWORD', '')
+
+DATABASE = 'mysql+pymysql://%s:%s@%s/%s?charset=utf8' % (
+    user,
+    password,
+    host,
     "test",
 )
 

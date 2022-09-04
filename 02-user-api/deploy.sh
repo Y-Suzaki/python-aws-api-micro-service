@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 stack_name_app="micro-service-user-api-app"
 
@@ -12,7 +12,12 @@ mkdir -p lambda
 cp infra/web-api.yml lambda/
 cp -r app/ lambda/
 cd lambda/app
-pip install -r requirements.txt -t .
+
+# Because mysql client uses os native library, execute "pip" in docker container.
+docker run -v "$PWD:/var/task" public.ecr.aws/sam/build-python3.9  \
+  /bin/sh -c "yum install python-devel mysql-devel libmariadb-dev -y &&  pip install -r requirements.txt -t ."
+docker ps -aq | xargs docker rm
+
 zip -r ../lambda.zip ./*
 cd ..
 
@@ -36,6 +41,7 @@ aws cloudformation deploy \
     APIVersion="${APIVersion?}" \
     DeployArtifactBucket="${DeployArtifactBucket?}" \
     AppEnvironmentLogLevel="${AppEnvironmentLogLevel?}" \
+    AppEnvironmentRDSPassword="${AppEnvironmentRDSPassword?}"
   --profile default
 
 echo "** All complete! **"

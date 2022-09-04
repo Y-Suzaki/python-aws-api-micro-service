@@ -1,4 +1,4 @@
 boto3==1.24.50
 aws-lambda-powertools==1.27.0
 sqlalchemy==1.4.40
-mysqlclient==2.1.1
+PyMySQL==1.0.2
