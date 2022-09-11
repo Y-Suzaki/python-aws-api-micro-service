@@ -1,0 +1,72 @@
+openapi: 3.0.1
+info:
+  title: OTA API
+  description: 'It is an API for managing setting information.<br>
+
+    test API.<br>
+
+    sample API.
+
+    '
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: https://api-sp-dev.ys-dev-web.tk
+tags:
+  - name: OTA
+    description: About device setting infomation.
+paths:
+  /ota/update:
+    get:
+      tags:
+        - OTA
+      summary: Find OTA update.
+      description: Find OTA update.
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateInfo'
+        503:
+          description: Internal server error.
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+components:
+  schemas:
+    UpdateInfo:
+      required:
+        - signed_url
+        - name
+        - version
+      type: object
+      properties:
+        name:
+          type: string
+          example: app.test
+        version:
+          type: integer
+          example: 10000
+        signed_url:
+          type: string
+          example: https://aaaaa.png
+  securitySchemes:
+    sigv4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4

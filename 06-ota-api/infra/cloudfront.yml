@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  OriginAccessControlId:
+    Type: String
+    Default: E2GCXVP7D3BMBR
+  PublicKey:
+    Type: String
+
+Resources:
+  CloudFrontLogS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ys-dev-web-cloudfront-log-${Env}
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 14
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  CloudFrontOriginS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ys-dev-web-cloudfront-origin-${Env}
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 14
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Should move this resource to other template, because of difference of lifecycle.
+  CloudFrontPublicKey:
+    Type: AWS::CloudFront::PublicKey
+    Properties:
+      PublicKeyConfig:
+        CallerReference: "CloudFront-Signed-Url"
+        EncodedKey: !Ref PublicKey
+        Name: !Sub ys-dev-web-cloudfront-public-key-${Env}
+        Comment: "CloudFront public key for OTA distribution."
+
+  # Should move this resource to other template, because of difference of lifecycle.
+  KeyGroup:
+    Type: AWS::CloudFront::KeyGroup
+    Properties:
+      KeyGroupConfig:
+        Items:
+          - !Ref CloudFrontPublicKey
+        Name: !Sub ys-dev-web-cloudfront-key-group-${Env}
+        Comment: "CloudFront key group for OTA distribution."
+
+  CloudFrontCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Comment: "CloudFront cache policy for OTA distribution."
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 0
+        Name: !Sub ys-dev-web-cloudfront-cache-policy-${Env}
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - CloudFrontLogS3Bucket
+      - CloudFrontOriginS3Bucket
+    Properties:
+      DistributionConfig:
+        Comment: CloudFront for OTA Distribution.
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachePolicyId: !Ref CloudFrontCachePolicy
+          TargetOriginId: ota-s3-origin
+          TrustedKeyGroups:
+            - !Ref KeyGroup
+          ViewerProtocolPolicy: https-only
+        Enabled: true
+        Logging:
+          IncludeCookies: false
+          Bucket: !Sub ${CloudFrontLogS3Bucket}.s3.amazonaws.com
+        Origins:
+          - DomainName: !GetAtt CloudFrontOriginS3Bucket.RegionalDomainName
+            Id: ota-s3-origin
+            OriginAccessControlId: !Ref OriginAccessControlId
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        PriceClass: PriceClass_100
+
+  CloudFrontOriginS3BucketPolicy:
+    DependsOn: CloudFront
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CloudFrontOriginS3Bucket
+      PolicyDocument:
+        Id: PolicyForCloudFrontPrivateContent
+        Version: 2008-10-17
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${CloudFrontOriginS3Bucket}/*
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFront}
+
+  # SSM
+  SSMPublicKeyId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/PublicKeyId
+      Type: String
+      Value: !Ref CloudFrontPublicKey
+
+  SSMCloudFrontDomain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ys-dev-web-${Env}/CloudFrontDomain
+      Type: String
+      Value: !GetAtt CloudFront.DomainName
