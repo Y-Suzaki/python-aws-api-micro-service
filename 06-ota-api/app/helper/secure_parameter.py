@@ -27,4 +27,5 @@ class SecureParameter:
 
             new_value = response['Parameter']['Value']
             cls.parameters[name] = new_value
+            print(f'Succeed to get new value. {new_value}')
             return new_value

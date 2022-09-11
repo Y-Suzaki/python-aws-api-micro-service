@@ -13,7 +13,12 @@ sudo chmod -R 777 lambda
 cp infra/web-api.yml lambda/
 cp -r app/ lambda/
 cd lambda/app
-pip install -r requirements.txt -t .
+
+# Because mysql client uses os native library, execute "pip" in docker container.
+docker run -v "$PWD:/var/task" public.ecr.aws/sam/build-python3.9  \
+  /bin/sh -c "yum install python-devel -y &&  pip install -r requirements.txt -t ."
+docker ps -aq | xargs docker rm
+
 zip -r ../lambda.zip ./*
 cd ..
 

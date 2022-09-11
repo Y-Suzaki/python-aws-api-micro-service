@@ -5,7 +5,7 @@ from usecase.ota_update import OTAUseCase
 
 @app.get('/ota/update')
 def get_ota_update():
-    return OTAUseCase.get_update_info()
+    return OTAUseCase().get_update_info()
 
 
 def handler(event: dict, context: LambdaContext) -> dict:

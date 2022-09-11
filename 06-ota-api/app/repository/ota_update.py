@@ -1,5 +1,4 @@
 import os
-import boto3
 from datetime import datetime, timedelta
 
 from cryptography.hazmat.backends import default_backend

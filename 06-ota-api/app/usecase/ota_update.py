@@ -7,7 +7,7 @@ class OTAUseCase:
         self._ota_update = OTAUpdateRepository()
 
     def get_update_info(self) -> dict:
-        signed_url = self._ota_update.generate_url()
+        signed_url = self._ota_update.generate_url('inu.png')
 
         return {
             'name': 'app.test',

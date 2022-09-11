@@ -43,8 +43,12 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-                  - ssm:GetParameter",
+                  - ssm:GetParameter*
                 Resource: "*"
+#              - Effect: "Allow"
+#                Action:
+#                  - kms:Decrypt
+#                Resource: "*"
 
   LambdaFunction:
     Type: AWS::Serverless::Function
