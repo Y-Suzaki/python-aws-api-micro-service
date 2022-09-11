@@ -73,6 +73,10 @@ Resources:
           EnableAcceptEncodingGzip: true
           HeadersConfig:
             HeaderBehavior: none
+#            HeaderBehavior: whitelist
+#            Headers:
+#              - Range
+#              - Content-Range
           QueryStringsConfig:
             QueryStringBehavior: none
 
