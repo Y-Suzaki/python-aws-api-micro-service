@@ -124,6 +124,8 @@ _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"]
 # access_api_gateway(_credential, 'user-service/users?limit=100')
 # access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
 access_api_gateway(_credential, 'setting-service/devices/012345678901234/config')
+access_api_gateway(_credential, 'setting-service/devices/999999999/config')
+
 
 # access_api_gateway_no_auth('setting-service/devices/12345/config')
 

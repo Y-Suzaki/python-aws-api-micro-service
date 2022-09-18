@@ -1,6 +1,11 @@
+import os
+
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from integration.lambda_proxy import app
 from internal.usecase.config import InternalConfigUseCase
+from helper.logger import LambdaJsonLogger
+
+logger = LambdaJsonLogger('DEBUG')
 
 
 @app.get('/devices/<device_id>/config')
@@ -15,5 +20,6 @@ def update(device_id: str):
 
 
 def handler(event: dict, context: LambdaContext) -> dict:
-    print(event)
+    logger.debug(f'{event=}')
+    logger.debug(f'{os.environ}')
     return app.resolve(event, context)

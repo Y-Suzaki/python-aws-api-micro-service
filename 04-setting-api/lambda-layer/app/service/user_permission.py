@@ -16,7 +16,7 @@ def device(func):
 
         # 権限チェック
         if device_id not in user_profile['available_devices']:
-            raise Exception('Permission Error.')
+            raise Exception(f'Permission Error. {device_id=}, {user_profile=}')
 
         print(f'{user_id=}, {device_id=}')
 
