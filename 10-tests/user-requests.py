@@ -121,12 +121,12 @@ _auth_result = auth(USER_ID, PASSWORD)
 _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"])
 # list_on_s3(_credential)
 
-access_api_gateway(_credential, 'user-service/users?limit=100')
-access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
-access_api_gateway(_credential, 'setting-service/devices/12345/config')
+# access_api_gateway(_credential, 'user-service/users?limit=100')
+# access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
+access_api_gateway(_credential, 'setting-service/devices/012345678901234/config')
 
-access_api_gateway_no_auth('setting-service/devices/12345/config')
+# access_api_gateway_no_auth('setting-service/devices/12345/config')
 
-put_kinesis_firehose(_credential, KINESIS_FIREHOSE)
+# put_kinesis_firehose(_credential, KINESIS_FIREHOSE)
 
 print('Completed!')

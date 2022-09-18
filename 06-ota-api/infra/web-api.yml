@@ -16,7 +16,17 @@ Parameters:
     Default: cf-templates-461spye58s2i-ap-northeast-1
   AppEnvironmentLogLevel:
     Type: String
+  MonitoringXRay:
+    Type: String
 
+Conditions:
+  isTracingEnabled: !Equals [!Ref MonitoringXRay, true]
+
+Globals:
+  Function:
+    Tracing: !If [isTracingEnabled, Active, PassThrough]
+  Api:
+    TracingEnabled: !If [isTracingEnabled, True, False]
 
 Resources:
   LambdaRole:
@@ -36,6 +46,14 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action: "logs:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                  - xray:GetSamplingStatisticSummaries
                 Resource: "*"
         - PolicyName: "lambda_ssm_policy"
           PolicyDocument:
@@ -63,6 +81,7 @@ Resources:
           PUBLIC_KEY_ID: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/PublicKeyId}}"
           CLOUDFRONT_DOMAIN: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/CloudFrontDomain}}"
           EXPIRE_SECONDS: 3600
+          AWS_XRAY_SDK_ENABLED: !Ref MonitoringXRay
 
   OTAApi:
     Type: AWS::Serverless::Api

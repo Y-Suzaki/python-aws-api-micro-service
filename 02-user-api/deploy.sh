@@ -41,7 +41,8 @@ aws cloudformation deploy \
     APIVersion="${APIVersion?}" \
     DeployArtifactBucket="${DeployArtifactBucket?}" \
     AppEnvironmentLogLevel="${AppEnvironmentLogLevel?}" \
-    AppEnvironmentRDSPassword="${AppEnvironmentRDSPassword?}"
+    AppEnvironmentRDSPassword="${AppEnvironmentRDSPassword?}" \
+    MonitoringXRay="${MonitoringXRay}" \
   --profile default
 
 echo "** All complete! **"

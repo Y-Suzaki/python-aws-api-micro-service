@@ -21,10 +21,17 @@ Parameters:
     Default: admin
   AppEnvironmentRDSPassword:
     Type: String
-#  AppEnvironmentRDSWriterEndpoint:
-#    Type: String
-#  AppEnvironmentRDSReaderEndpoint:
-#    Type: String
+  MonitoringXRay:
+    Type: String
+
+Conditions:
+  isTracingEnabled: !Equals [!Ref MonitoringXRay, true]
+
+Globals:
+  Function:
+    Tracing: !If [isTracingEnabled, Active, PassThrough]
+  Api:
+    TracingEnabled: !If [isTracingEnabled, True, False]
 
 Resources:
   LambdaRole:
@@ -38,17 +45,22 @@ Resources:
               Service: lambda.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
-        -
-          PolicyName: "lambda_cw_policy"
+        - PolicyName: "lambda_cw_policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              -
-                Effect: "Allow"
+              - Effect: "Allow"
                 Action: "logs:*"
                 Resource: "*"
-        -
-          PolicyName: "lambda_vpc_policy"
+              - Effect: "Allow"
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                  - xray:GetSamplingStatisticSummaries
+                Resource: "*"
+        - PolicyName: "lambda_vpc_policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -84,6 +96,7 @@ Resources:
           RDS_READER_ENDPOINT: !Sub "{{resolve:ssm:/ys-dev-web-${Env}/RDSReaderEndpoint}}"
           RDS_USER: !Ref AppEnvironmentRDSUser
           RDS_PASSWORD: !Ref AppEnvironmentRDSPassword
+          AWS_XRAY_SDK_ENABLED: !Ref MonitoringXRay
 
   WebApi:
     Type: AWS::Serverless::Api

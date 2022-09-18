@@ -45,6 +45,7 @@ aws cloudformation deploy \
     APIVersion="${APIVersion?}" \
     DeployArtifactBucket="${DeployArtifactBucket?}" \
     AppEnvironmentLogLevel="${AppEnvironmentLogLevel?}" \
+    MonitoringXRay="${MonitoringXRay}" \
   --profile default
 
 echo "** All complete! **"

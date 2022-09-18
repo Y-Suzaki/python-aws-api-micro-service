@@ -18,5 +18,8 @@ Domain:
   ZoneId: Z0139905R5YAJRU3O2P6
   ZoneName: ys-dev-web.tk
 
+Monitoring:
+  XRay: true
+
 Deploy:
   ArtifactBucket: cf-templates-461spye58s2i-ap-northeast-1
