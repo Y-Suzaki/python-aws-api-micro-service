@@ -1,0 +1,56 @@
+openapi: 3.0.1
+info:
+  title: Event API
+  description: It is an API for managing setting information.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost
+tags:
+  - name: event
+    description: About event infomation.
+paths:
+  /events:
+    get:
+      tags:
+        - event
+      summary: Find event.
+      description: Find event.
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        503:
+          description: Internal server error.
+          content: {}
+      security:
+        - sigv4: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+
+components:
+  schemas:
+    EventResponse:
+      type: object
+
+  securitySchemes:
+    sigv4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
