@@ -1,6 +1,6 @@
 # Please use 2 indents so that the shell script can parse the config-api-drive.yml.
 Env: dev
-ServiceName: location-service
+ServiceName: event-service
 
 App:
   Version: 1.0.0
@@ -19,7 +19,7 @@ Domain:
   ZoneName: ys-dev-web.tk
 
 Monitoring:
-  XRay: true
+  XRay: false
 
 Deploy:
   ArtifactBucket: cf-templates-461spye58s2i-ap-northeast-1

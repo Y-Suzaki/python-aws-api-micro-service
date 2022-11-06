@@ -117,15 +117,36 @@ def put_kinesis_firehose(credential, firehose_name: str):
         Record={'Data': (json.dumps(data_list[1]) + "\n").encode()})
 
 
+def upload_s3(credential, bucket_name, key, file):
+    session = Session(
+        aws_access_key_id=credential['AccessKeyId'],
+        aws_secret_access_key=credential['SecretKey'],
+        aws_session_token=credential['SessionToken'],
+        region_name='ap-northeast-1')
+
+    s3 = session.resource('s3')
+    s3bucket = s3.Bucket(bucket_name)
+    s3bucket.upload_file(key, file)
+
+
 _auth_result = auth(USER_ID, PASSWORD)
 _credential = authorize(id_token=_auth_result["AuthenticationResult"]["IdToken"])
 # list_on_s3(_credential)
 
 # access_api_gateway(_credential, 'user-service/users?limit=100')
 # access_api_gateway(_credential, 'location-service/devices/12345/location/available_days')
-access_api_gateway(_credential, 'setting-service/devices/012345678901234/config')
-access_api_gateway(_credential, 'setting-service/devices/999999999/config')
+# access_api_gateway(_credential, 'setting-service/devices/012345678901234/config')
+# access_api_gateway(_credential, 'setting-service/devices/999999999/config')
 
+# access_api_gateway(_credential, 'event-service/events')
+try:
+    upload_s3(_credential, 'ys-dev-web-datalake-analytics', 'upload.json',
+              'ap-northeast-1:6d54d2ad-d36a-4745-9f64-87273d2e53e3/upload.json')
+except Exception as e:
+    print(e)
+
+upload_s3(_credential, 'ys-dev-web-datalake-analytics', 'upload.json',
+          'ap-northeast-1:6d54d2ad-d36a-4745-9f64-87273d2e53e2/upload.json')
 
 # access_api_gateway_no_auth('setting-service/devices/12345/config')
 

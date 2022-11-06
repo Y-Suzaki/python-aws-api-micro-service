@@ -14,6 +14,9 @@ Parameters:
     Type: String
   DomainZoneName:
     Type: String
+  BucketName:
+    Type: String
+    Default: ys-dev-web-datalake-analytics
 
 Resources:
   BasePathMapping:
@@ -40,6 +43,16 @@ Resources:
               - !Sub
                 - "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/*/*"
                 - RestApiId: {'Fn::ImportValue': !Sub 'ys-dev-web-${ServiceName}-api-id-${Env}'}
+          - Effect: Allow
+            Action:
+              - "s3:DeleteObject"
+              - "s3:GetObject"
+              - "s3:PutObject"
+            Resource:
+              - Fn::Sub:
+                - "arn:aws:s3:::${BucketName}/${IdentitySub}/*"
+                - BucketName: !Ref BucketName
+                  IdentitySub: ${cognito-identity.amazonaws.com:sub}
       Roles:
         - Fn::ImportValue:
             !Sub ys-dev-web-authenticated-role-${Env}
